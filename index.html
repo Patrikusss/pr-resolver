@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GitHub Resolve Game</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+        background-color: #0d1117;
+        overflow: hidden;
+        color: #c9d1d9;
+      }
+
+      #game-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      .github-comment {
+        position: absolute;
+        width: 400px;
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 12px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+        cursor: default;
+        z-index: 10;
+        max-height: 400px;
+        overflow: hidden;
+      }
+
+      .comment-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+
+      .avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background-color: #30363d;
+        margin-right: 8px;
+      }
+
+      .username {
+        font-weight: bold;
+        color: #8b949e;
+        margin-right: 5px;
+      }
+
+      .timestamp {
+        font-size: 12px;
+        color: #8b949e;
+      }
+
+      .comment-content {
+        line-height: 1.4;
+        margin-bottom: 12px;
+      }
+
+      .file-path {
+        font-family: monospace;
+        color: #8b949e;
+        font-size: 12px;
+        padding: 4px 0;
+        border-bottom: 1px solid #30363d;
+        margin-bottom: 8px;
+      }
+
+      .code-block {
+        background-color: #0d1117;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        overflow: auto;
+        max-height: 120px;
+      }
+
+      .code-block pre {
+        font-family: monospace;
+        font-size: 12px;
+        padding: 8px;
+        margin: 0;
+        color: #c9d1d9;
+        white-space: pre-wrap;
+      }
+
+      .resolve-button {
+        background-color: #238636;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        width: 100%;
+        margin-top: 8px;
+      }
+
+      .resolve-button:hover {
+        background-color: #2ea043;
+      }
+
+      #score-container {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background-color: rgba(22, 27, 34, 0.8);
+        padding: 10px 15px;
+        border-radius: 6px;
+        border: 1px solid #30363d;
+        z-index: 100;
+        font-size: 18px;
+        font-weight: bold;
+      }
+
+      #lives-container {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(22, 27, 34, 0.8);
+        padding: 10px 15px;
+        border-radius: 6px;
+        border: 1px solid #30363d;
+        z-index: 100;
+      }
+
+      .heart {
+        color: #f85149;
+        margin: 0 2px;
+        font-size: 20px;
+      }
+
+      #game-over {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 20px;
+        text-align: center;
+        z-index: 200;
+        display: none;
+      }
+
+      #restart-button {
+        background-color: #238636;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+      }
+
+      #restart-button:hover {
+        background-color: #2ea043;
+      }
+
+      #start-screen {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 30px;
+        text-align: center;
+        z-index: 200;
+        width: 500px;
+        max-width: 90%;
+      }
+
+      #difficulty-info {
+        margin-top: 10px;
+        font-style: italic;
+        color: #8b949e;
+      }
+
+      #start-button {
+        background-color: #238636;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 8px 16px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-top: 20px;
+      }
+
+      #start-button:hover {
+        background-color: #2ea043;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="game-container">
+      <div id="score-container">Score: <span id="score">0</span></div>
+      <div id="lives-container">Lives: <span id="lives">❤️❤️❤️</span></div>
+
+      <div id="start-screen">
+        <h1>GitHub PR Comment Resolver</h1>
+        <p>Click on the "Resolve" buttons of falling GitHub comments before they reach the bottom!</p>
+        <p>You have 3 lives. Comments will shatter if they hit the bottom!</p>
+        <p id="difficulty-info">
+          The game gets progressively harder as your score increases - comments will fall faster and appear more
+          frequently!
+        </p>
+        <p style="font-style: italic; color: #8b949e; margin-top: 10px">
+          Can you survive your tech lead's nitpicking code review?
+        </p>
+        <button id="start-button">Start Resolving</button>
+      </div>
+
+      <div id="game-over">
+        <h1>PR Resolution Complete!</h1>
+        <p>You resolved <span id="final-score">0</span> comments!</p>
+        <p id="game-over-message"></p>
+        <p id="funny-comment" style="font-style: italic; color: #8b949e; margin-top: 10px"></p>
+        <button id="restart-button">Try Another PR</button>
+      </div>
+    </div>
+
+    <script>
+      // Game state
+      let score = 0;
+      let lives = 3;
+      let gameRunning = false;
+      let gameSpeed = 1;
+      let activeComments = [];
+      let commentInterval;
+      let commentFrequency = 1500; // Initial time between comments in ms
+
+      // DOM elements
+      const gameContainer = document.getElementById("game-container");
+      const scoreElement = document.getElementById("score");
+      const livesElement = document.getElementById("lives");
+      const startScreen = document.getElementById("start-screen");
+      const startButton = document.getElementById("start-button");
+      const gameOverScreen = document.getElementById("game-over");
+      const finalScoreElement = document.getElementById("final-score");
+      const restartButton = document.getElementById("restart-button");
+
+      // Comment data
+      const commentAuthors = [
+        "tarl-kailor",
+        "kar1-c0der",
+        "kernel-tinker",
+        "kode-tyler",
+        "curl-tester",
+        "korl-dev",
+        "kayle-taylr",
+        "kral-coder",
+        "ctrl-dev",
+        "karyl-tekker",
+      ];
+
+      const timeAgo = [
+        "2 minutes ago",
+        "5 minutes ago",
+        "10 minutes ago",
+        "15 minutes ago",
+        "30 minutes ago",
+        "1 hour ago",
+        "2 hours ago",
+        "3 hours ago",
+        "just now",
+        "1 day ago",
+        "yesterday",
+        "4 hours ago",
+      ];
+
+      const commentTexts = [
+        {
+          type: "code",
+          path: "src/components/Button.tsx",
+          code: `const Button = ({ children, ...props }) => {\n  // Missing type definitions here\n  return <button {...props}>{children}</button>;\n};`,
+          comment: "Please rename this to 'StyledButton' to better follow our naming conventions.",
+        },
+        {
+          type: "code",
+          path: "src/hooks/useAuth.js",
+          code: `useEffect(() => {\n  fetchUserData();\n  // No dependency array\n});`,
+          comment: "There's an extra blank line at the end of this hook. Our style guide says to remove it.",
+        },
+        {
+          type: "code",
+          path: "pages/dashboard/index.js",
+          code: `function Dashboard() {\n  const [data, setData] = useState();\n  // No error handling\n  useEffect(() => {\n    fetch('/api/data').then(res => res.json()).then(data => setData(data));\n  }, []);\n}`,
+          comment: "You used single quotes here but double quotes everywhere else. Be consistent please.",
+        },
+        {
+          type: "code",
+          path: "src/utils/formatters.ts",
+          code: `export const formatCurrency = (value: any): string => {\n  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);\n};`,
+          comment: "Can we add a comment explaining what this does? It's not immediately obvious.",
+        },
+        {
+          type: "code",
+          path: "components/Modal/Modal.jsx",
+          code: `class Modal extends React.Component {\n  // ...\n  componentDidMount() {\n    document.addEventListener('keydown', this.handleEsc);\n  }\n  // No componentWillUnmount\n}`,
+          comment: "This closing curly brace should be on line 42, not 41. Please fix the formatting.",
+        },
+        {
+          type: "code",
+          path: "lib/api/fetchUser.js",
+          code: `async function fetchUser() {\n  const res = await fetch('/api/user');\n  return await res.json();\n  // No error handling\n}`,
+          comment:
+            "You don't need the 'async' keyword here since there's no 'await' inside. It still works though, just saying.",
+        },
+        {
+          type: "code",
+          path: "src/context/ThemeContext.tsx",
+          code: `export const ThemeContext = createContext();\n// Missing type parameter`,
+          comment: "I would name this 'ColorContext' instead of 'ThemeContext' to be more specific.",
+        },
+        {
+          type: "code",
+          path: "components/Header/Navigation.js",
+          code: `const items = [\n  { id: 1, label: 'Home' },\n  { id: 2, label: 'About' },\n];\n\nfunction Navigation() {\n  return (\n    <nav>\n      {items.map(item => <a key={item.id}>{item.label}</a>)}\n    </nav>\n  );\n}`,
+          comment:
+            "There's a trailing comma after the last array item. We should be consistent about using or not using them.",
+        },
+        {
+          type: "code",
+          path: "utils/helpers/validation.js",
+          code: `export function isValidEmail(email) {\n  return email.includes('@');\n}`,
+          comment: "Let's add a TODO comment here to remind us to improve this later.",
+        },
+        {
+          type: "code",
+          path: "src/store/userSlice.js",
+          code: `const userSlice = createSlice({\n  name: 'user',\n  initialState: {},\n  reducers: {\n    setUser: (state, action) => {\n      state = action.payload; // Incorrect mutation\n    }\n  }\n});`,
+          comment: "Consider adding a space after the opening curly brace. It improves readability.",
+        },
+        {
+          type: "text",
+          comment: "This is PR #99. Just one more PR to go before we reach our quarterly goal!",
+        },
+        {
+          type: "text",
+          comment:
+            "I've been reviewing code for 6 hours straight. Is it just me or are all these variable names starting to blur together?",
+        },
+        {
+          type: "text",
+          comment:
+            "Your code works perfectly, but I still feel like we need to make at least one change to justify my review time.",
+        },
+        {
+          type: "text",
+          comment: "I'm approving this, but please note that I'm not completely happy with the indentation style.",
+        },
+        {
+          type: "text",
+          comment: "We're now at 99 comments on this PR. Should I add one more to make it a round number?",
+        },
+        {
+          type: "code",
+          path: "pages/api/products.js",
+          code: `export default function handler(req, res) {\n  const products = getProducts();\n  res.status(200).json(products);\n}`,
+          comment:
+            "The variable name 'products' is too generic. Could we rename it to 'productList' or 'productItems'?",
+        },
+        {
+          type: "code",
+          path: "src/components/List.jsx",
+          code: `function List({ items }) {\n  return (\n    <ul>\n      {items.map(item => (\n        <li>{item.name}</li>\n      ))}\n    </ul>\n  );\n}`,
+          comment: "I'd prefer if we used arrow function syntax here to be consistent with the rest of the codebase.",
+        },
+        {
+          type: "code",
+          path: "styles/global.css",
+          code: `.button {\n  background-color: #0070f3;\n  color: white;\n  padding: 8px 16px;\n}\n\n.button-primary {\n  background-color: #0070f3;\n  color: white;\n  padding: 8px 16px;\n}`,
+          comment: "Can we change this blue to be exactly 2% darker? It would match our brand guidelines better.",
+        },
+        {
+          type: "code",
+          path: "src/utils/date.ts",
+          code: `export function formatDate(date) {\n  return new Date(date).toLocaleDateString();\n}`,
+          comment: "The function name should be 'formatDateToLocalString' to be more descriptive of what it does.",
+        },
+        {
+          type: "code",
+          path: "components/Form/Input.jsx",
+          code: `const Input = (props) => {\n  return <input {...props} />;\n};`,
+          comment: "Let's add a comment here explaining why we're spreading props instead of listing them explicitly.",
+        },
+        {
+          type: "text",
+          comment:
+            "Not a blocker, but I counted the characters in this file and it's 1337. Could we add or remove one to make it less distracting?",
+        },
+        {
+          type: "text",
+          comment:
+            "This code is perfect. Almost too perfect. Are you sure you wrote it yourself? Just kidding, approving now.",
+        },
+        {
+          type: "text",
+          comment: "Your PR is 90% complete. The remaining 10% will take another 90% of the review time.",
+        },
+        {
+          type: "text",
+          comment:
+            "This is fine, but have you considered rewriting the entire component in a functional style using hooks?",
+        },
+        {
+          type: "code",
+          path: "src/layouts/MainLayout.jsx",
+          code: `import React from 'react';\n\nconst MainLayout = ({ children }) => {\n  return <div className="layout">{children}</div>;\n};`,
+          comment:
+            "The import and component declaration should be separated by exactly two blank lines according to our style guide.",
+        },
+        {
+          type: "code",
+          path: "utils/formatters/stringUtils.js",
+          code: `export const capitalize = (str) => {\n  if (!str) return '';\n  return str.charAt(0).toUpperCase() + str.slice(1);\n};`,
+          comment: "Let's rename this to 'capitalizeFirstLetter' to be extremely explicit about what it does.",
+        },
+        {
+          type: "code",
+          path: "src/hooks/useLocalStorage.js",
+          code: `function useLocalStorage(key, initialValue) {\n  // Hook implementation\n}`,
+          comment: "This comment 'Hook implementation' doesn't add any value. We can see it's a hook implementation.",
+        },
+        {
+          type: "code",
+          path: "components/icons/ArrowRight.tsx",
+          code: `const ArrowRight = () => (\n  <svg width="24" height="24" viewBox="0 0 24 24">\n    <path d="M13.025 1l-2.847 2.828 6.176 6.176h-16.354v3.992h16.354l-6.176 6.176 2.847 2.828 10.975-11z"/>\n  </svg>\n);`,
+          comment:
+            "This SVG path could be optimized further. I ran it through an optimizer and it can be 2 bytes smaller.",
+        },
+        {
+          type: "text",
+          comment: "This is the 47th PR I've reviewed today. Please don't take my nitpicking personally.",
+        },
+        {
+          type: "text",
+          comment: "Just wondering, did you consider alphabetizing these imports? Not required, just curious.",
+        },
+      ];
+
+      // Game functions
+      function updateScore() {
+        scoreElement.textContent = score;
+      }
+
+      function updateLives() {
+        livesElement.textContent = "❤️".repeat(lives);
+      }
+
+      function createComment() {
+        const comment = document.createElement("div");
+        comment.className = "github-comment";
+
+        // Random rotation between -5 and 5 degrees
+        const rotation = Math.random() * 10 - 5;
+        comment.style.transform = `rotate(${rotation}deg)`;
+
+        // Random starting position
+        const startX = Math.random() * (window.innerWidth - 450) + 25;
+        comment.style.left = `${startX}px`;
+        comment.style.top = "-250px"; // Start higher above the screen
+
+        // Get random comment data
+        const author = commentAuthors[Math.floor(Math.random() * commentAuthors.length)];
+        const time = timeAgo[Math.floor(Math.random() * timeAgo.length)];
+        const commentData = commentTexts[Math.floor(Math.random() * commentTexts.length)];
+
+        // Comment HTML structure
+        let commentContent = "";
+
+        if (commentData.type === "code") {
+          // Create a comment with code snippet
+          commentContent = `
+                    <div class="file-path">${commentData.path}</div>
+                    <div class="code-block">
+                        <pre>${commentData.code}</pre>
+                    </div>
+                    <div class="comment-content">${commentData.comment}</div>
+                `;
+        } else {
+          // Simple text comment
+          commentContent = `
+                    <div class="comment-content">${commentData.comment}</div>
+                `;
+        }
+
+        comment.innerHTML = `
+                <div class="comment-header">
+                    <div class="avatar"></div>
+                    <span class="username">${author}</span>
+                    <span class="timestamp">${time}</span>
+                </div>
+                ${commentContent}
+                <button class="resolve-button">Resolve conversation</button>
+            `;
+
+        // Add click handler for resolve button
+        const resolveButton = comment.querySelector(".resolve-button");
+        resolveButton.addEventListener("click", () => {
+          resolveComment(comment);
+        });
+
+        gameContainer.appendChild(comment);
+
+        // Add to active comments array
+        activeComments.push({
+          element: comment,
+          speed: Math.random() * 1 + gameSpeed, // Random speed variation
+        });
+      }
+
+      function resolveComment(comment) {
+        // Find the index of the comment in the activeComments array
+        const index = activeComments.findIndex((c) => c.element === comment);
+
+        if (index !== -1) {
+          // Remove from active comments
+          activeComments.splice(index, 1);
+
+          // Remove from DOM with a quick fade out
+          comment.style.opacity = "0";
+          comment.style.transition = "opacity 0.2s";
+
+          setTimeout(() => {
+            if (comment.parentNode) {
+              comment.parentNode.removeChild(comment);
+            }
+          }, 200);
+
+          // Update score
+          score++;
+          updateScore();
+
+          // Increase game difficulty as score increases
+          gameSpeed = 1 + score * 0.05; // Increase speed based on score
+
+          // Decrease comment spawn interval as score increases
+          if (score % 5 === 0 && commentFrequency > 600) {
+            commentFrequency -= 100;
+            clearInterval(commentInterval);
+            commentInterval = setInterval(() => {
+              if (gameRunning) {
+                createComment();
+              }
+            }, commentFrequency);
+          }
+        }
+      }
+
+      function updateGame() {
+        // Move each active comment down
+        for (let i = activeComments.length - 1; i >= 0; i--) {
+          const comment = activeComments[i];
+          const element = comment.element;
+
+          // Get current position
+          const currentTop = parseFloat(element.style.top);
+
+          // Move down
+          element.style.top = `${currentTop + comment.speed}px`;
+
+          // Check if comment has reached the bottom
+          if (currentTop > window.innerHeight) {
+            // Remove from active comments
+            activeComments.splice(i, 1);
+
+            // Create shatter effect
+            createShatterEffect(element);
+
+            // Lose a life
+            lives--;
+            updateLives();
+
+            // Check game over
+            if (lives <= 0) {
+              endGame();
+            }
+          }
+        }
+
+        // Continue the game loop
+        if (gameRunning) {
+          requestAnimationFrame(updateGame);
+        }
+      }
+
+      function createShatterEffect(element) {
+        const rect = element.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        // Create shattered pieces
+        const numPieces = 12;
+        const pieces = [];
+
+        // Create copy of the comment content for the animation
+        const commentClone = element.cloneNode(true);
+        commentClone.style.position = "absolute";
+        commentClone.style.left = element.style.left;
+        commentClone.style.top = element.style.top;
+        commentClone.style.transform = element.style.transform;
+        commentClone.style.opacity = "0.9";
+        gameContainer.appendChild(commentClone);
+
+        // Create shattered pieces
+        for (let i = 0; i < numPieces; i++) {
+          const piece = document.createElement("div");
+          piece.className = "github-comment";
+
+          // Make pieces smaller
+          piece.style.width = `${Math.random() * 100 + 50}px`;
+          piece.style.height = `${Math.random() * 60 + 30}px`;
+          piece.style.overflow = "hidden";
+
+          // Position at center of original comment
+          piece.style.position = "absolute";
+          piece.style.left = `${centerX - piece.style.width.split("px")[0] / 2}px`;
+          piece.style.top = `${centerY - piece.style.height.split("px")[0] / 2}px`;
+
+          // Style
+          piece.style.opacity = "0.7";
+          piece.style.backgroundColor = "#161b22";
+          piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+
+          // Add a random border piece
+          const borderSide = Math.floor(Math.random() * 4);
+          if (borderSide === 0) piece.style.borderTop = "1px solid #30363d";
+          else if (borderSide === 1) piece.style.borderRight = "1px solid #30363d";
+          else if (borderSide === 2) piece.style.borderBottom = "1px solid #30363d";
+          else piece.style.borderLeft = "1px solid #30363d";
+
+          // Add some content from the button or header
+          if (Math.random() > 0.5) {
+            if (Math.random() > 0.5) {
+              piece.innerHTML = '<button class="resolve-button">Resolve</button>';
+            } else {
+              piece.innerHTML = '<div class="avatar"></div>';
+            }
+          }
+
+          gameContainer.appendChild(piece);
+
+          // Animation variables
+          const angle = (i / numPieces) * Math.PI * 2;
+          const velocity = 5 + Math.random() * 5;
+          const vx = Math.cos(angle) * velocity;
+          const vy = Math.sin(angle) * velocity;
+          const rotationSpeed = (Math.random() - 0.5) * 20;
+
+          pieces.push({
+            element: piece,
+            vx,
+            vy,
+            rotationSpeed,
+            opacity: 0.7,
+          });
+        }
+
+        // Remove original element
+        if (element.parentNode) {
+          element.parentNode.removeChild(element);
+        }
+
+        // Animate pieces
+        let animationFrame;
+        const animatePieces = () => {
+          let allGone = true;
+
+          pieces.forEach((piece) => {
+            // Update position
+            const currentLeft = parseFloat(piece.element.style.left);
+            const currentTop = parseFloat(piece.element.style.top);
+            piece.element.style.left = `${currentLeft + piece.vx}px`;
+            piece.element.style.top = `${currentTop + piece.vy}px`;
+
+            // Apply gravity
+            piece.vy += 0.2;
+
+            // Rotate
+            const currentRotation = piece.element.style.transform.match(/rotate\(([^)]+)\)/);
+            let currentAngle = currentRotation ? parseFloat(currentRotation[1]) : 0;
+            if (currentRotation && currentRotation[1].includes("deg")) {
+              currentAngle = parseFloat(currentRotation[1]);
+            }
+            piece.element.style.transform = `rotate(${currentAngle + piece.rotationSpeed}deg)`;
+
+            // Fade out
+            piece.opacity -= 0.02;
+            piece.element.style.opacity = piece.opacity > 0 ? piece.opacity : 0;
+
+            if (piece.opacity > 0) {
+              allGone = false;
+            }
+          });
+
+          // Fade out the clone
+          const currentOpacity = parseFloat(commentClone.style.opacity);
+          commentClone.style.opacity = `${currentOpacity - 0.05}`;
+
+          if (commentClone.style.opacity > 0) {
+            allGone = false;
+          }
+
+          // Continue animation or clean up
+          if (!allGone) {
+            animationFrame = requestAnimationFrame(animatePieces);
+          } else {
+            // Clean up
+            pieces.forEach((piece) => {
+              if (piece.element.parentNode) {
+                piece.element.parentNode.removeChild(piece.element);
+              }
+            });
+            if (commentClone.parentNode) {
+              commentClone.parentNode.removeChild(commentClone);
+            }
+            cancelAnimationFrame(animationFrame);
+          }
+        };
+
+        animationFrame = requestAnimationFrame(animatePieces);
+      }
+
+      function startGame() {
+        // Reset game state
+        score = 0;
+        lives = 3;
+        gameSpeed = 1;
+        gameRunning = true;
+        activeComments = [];
+
+        // Clear any existing comments
+        const existingComments = document.querySelectorAll(".github-comment");
+        existingComments.forEach((comment) => {
+          comment.parentNode.removeChild(comment);
+        });
+
+        // Update UI
+        updateScore();
+        updateLives();
+
+        // Hide start screen
+        startScreen.style.display = "none";
+        gameOverScreen.style.display = "none";
+
+        // Start creating comments
+        commentFrequency = 1500; // Reset to initial frequency
+        commentInterval = setInterval(() => {
+          if (gameRunning) {
+            createComment();
+          }
+        }, commentFrequency);
+
+        // Start game loop
+        requestAnimationFrame(updateGame);
+      }
+
+      function endGame() {
+        gameRunning = false;
+        clearInterval(commentInterval);
+
+        // Disable all resolve buttons
+        const allButtons = document.querySelectorAll(".resolve-button");
+        allButtons.forEach((button) => {
+          button.disabled = true;
+          button.style.backgroundColor = "#6e7681";
+          button.style.cursor = "not-allowed";
+        });
+
+        // Set final score
+        finalScoreElement.textContent = score;
+
+        // Get personalized message based on score
+        let gameOverMessage = "";
+        if (score < 10) {
+          gameOverMessage = "Nice effort! Keep practicing to improve your PR resolution skills.";
+        } else if (score < 25) {
+          gameOverMessage = "Good job! You're getting better at handling those nitpicky comments.";
+        } else if (score < 50) {
+          gameOverMessage = "Excellent work! Your tech lead would be impressed with your resolution speed.";
+        } else if (score < 75) {
+          gameOverMessage = "Amazing! You're a PR resolution machine. The team is lucky to have you!";
+        } else {
+          gameOverMessage = "Incredible! You're faster than a CI/CD pipeline. You deserve a promotion!";
+        }
+
+        // Add a funny comment based on score
+        let funnyComment = "";
+        if (score === 0) {
+          funnyComment = "Did you even try? 😅";
+        } else if (score === 1) {
+          funnyComment = "At least you resolved that one critical typo!";
+        } else if (score % 10 === 9) {
+          funnyComment = "Just one more to make your tech lead happy with a round number!";
+        } else if (score === 42) {
+          funnyComment = "The perfect answer to life, the universe, and PR comments!";
+        } else if (score === 99) {
+          funnyComment = "So close to 100! Your tech lead will definitely notice that one missing comment!";
+        } else if (score >= 100) {
+          funnyComment = "Congrats! You've officially survived a senior developer's code review!";
+        } else {
+          funnyComment = "Remember: Every unresolved comment is another minute in the next team meeting!";
+        }
+
+        // Update game over message
+        document.querySelector("#game-over h1").textContent = "PR Resolution Complete!";
+        document.querySelector("#game-over-message").textContent = gameOverMessage;
+        document.querySelector("#funny-comment").textContent = funnyComment;
+
+        // Show game over screen
+        gameOverScreen.style.display = "block";
+      }
+
+      // Event listeners
+      startButton.addEventListener("click", startGame);
+      restartButton.addEventListener("click", startGame);
+
+      // Resize handler
+      window.addEventListener("resize", () => {
+        // Adjust any comments that might be off-screen after resize
+        activeComments.forEach((comment) => {
+          const element = comment.element;
+          const left = parseFloat(element.style.left);
+
+          if (left > window.innerWidth - 200) {
+            element.style.left = `${window.innerWidth - 250}px`;
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
